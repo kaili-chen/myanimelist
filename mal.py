@@ -195,6 +195,128 @@ def get_mal_stats(url):
     return stats
 
 
+def get_anime_characters(url):
+    '''
+    Gets anime characters' information from mal anime url.
+
+    Parameters:
+        url (string): mal anime url (https://myanimelist.net/anime/<mal anime id>/characters)
+
+    Returns
+        characters (dict): mal anime characters' information
+    '''
+
+    soup = utility.get_soup(url)
+    # print(soup.prettify())
+    characters = []
+    h2_headers = soup.find_all("h2")
+    # print(h2_headers)
+    for h in h2_headers:
+        for child in h.children:
+            try:
+                child.decompose()
+            except AttributeError:
+                continue
+
+        h2_text = h.text.strip()
+
+        if h2_text == "Characters & Voice Actors" or h2_text == "Characters &amp; Voice Actors":
+            current_tag = h.parent.nextSibling
+
+            while current_tag is not None and current_tag.name == "table":
+                cells = current_tag.find_all("td")
+
+                character = cells[1]
+                character_url = character.find("a")["href"]
+                character_name = character.find("a").text.strip()
+                character_type = character.find("div").find("small").text.strip()
+                # print("{} [{}]".format(character_name, character_type))
+
+                for cell in cells[3:]:
+                    if cell["valign"] == "top":
+                        seiyuu_name = cell.find("a").text.strip()
+                        seiyuu_url = cell.find("a")["href"]
+                        seiyuu_lang = cell.find("small")
+                        if not seiyuu_lang:
+                            continue
+                        seiyuu_lang = seiyuu_lang.contents[0]
+                        # print("\t{}".format(cell))
+                        # print("\t{} [{}]".format(seiyuu_name, seiyuu_lang))
+                        # print("\t{}".format(seiyuu_url))
+                        characters.append({
+                            "character": character_name,
+                            "characterUrl": character_url,
+                            "characterType": character_type,
+                            "va": seiyuu_name,
+                            "lang": seiyuu_lang,
+                            "url": seiyuu_url
+                        })
+                current_tag = current_tag.nextSibling
+    return characters
+
+
+def get_anime_staff(url):
+    '''
+    Gets anime staff information from mal anime url.
+
+    Parameters:
+        url (string): mal anime url (https://myanimelist.net/anime/<mal anime id>/characters)
+
+    Returns
+        staff (dict): mal anime staff information
+    '''
+
+    soup = utility.get_soup(url)
+    # print(soup.prettify())
+    staff = []
+    h2_headers = soup.find_all("h2")
+    # print(h2_headers)
+    for h in h2_headers:
+        for child in h.children:
+            try:
+                child.decompose()
+            except AttributeError:
+                continue
+
+        h2_text = h.text.strip()
+
+        if h2_text == "Staff":
+            current_tag = h.parent.nextSibling
+            # cells = current_tag.find_all("td")
+            # print(cells[1].find("small").text.strip())
+
+            while current_tag is not None and current_tag.name == "table":
+                cells = current_tag.find_all("td")
+                staff_person = cells[1]
+                staff_name = staff_person.find('a').text.strip()
+                staff_url = staff_person.find('a')['href']
+                # print("{} ({})".format(staff_name, staff_url))
+                role_str = staff_person.find("small").text.strip()
+                if len(role_str) > 0:
+                    roles = [r.strip() for r in role_str.split(",")]
+                else:
+                    roles = []
+                # print("\t{}".format(roles))
+                staff.append({
+                    "staff": staff_name,
+                    "staffUrl": staff_url,
+                    "roles": roles
+                })
+                current_tag = current_tag.nextSibling
+    return staff
+
 if __name__ == "__main__":
-# TODO: add command line
-    pass
+    # TODO: add command line usage
+
+    # url = "https://myanimelist.net/anime/20583/Haikyuu/characters"
+    # url = "https://myanimelist.net/anime/28851/Koe_no_Katachi/characters"
+    url = "https://myanimelist.net/anime/41807/Get_Up_Get_Live_Geragera/characters"
+    # data = get_anime_characters(url)
+    data = {
+        "staff": get_anime_staff(url)
+    }
+    # with open('data.json', 'w', encoding='utf8') as outfile:
+    # with open('staff_1.json', 'w', encoding='utf-8') as json_file:
+        # json.dump(data, json_file, indent=4)
+
+    print(utility.save_json(data, "test"))
