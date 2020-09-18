@@ -1,32 +1,13 @@
 import sys
 import requests
-from bs4 import BeautifulSoup
 import re
 from datetime import datetime
-import argparse
-import json
 import utility
 
 dt = datetime.now()
 timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
 
 ### FUNCTIONS
-def is_mal_url(url):
-    '''
-    Checks if url provided is a mal url
-
-    Parameters:
-        url (string):  url
-
-    Returns:
-        (boolean) indicating if url provided is a mal url
-    '''
-    # TODO: seperate into type of mal page for url
-    if url.find('myanimelist.net/'):
-        return True
-    return False
-
-
 def get_anime_info(url, full=False):
     '''
     Gets anime information from mal anime url.
@@ -46,10 +27,7 @@ def get_anime_info(url, full=False):
     info["malId"] = mal_id
 
     title = soup.find("meta", property="og:title")
-    if title:
-        title['url'] = title["content"].strip()
-    else:
-        ""
+    title['url'] = title["content"].strip()
 
     url_tag = soup.find('meta', property="og:url")
     if url_tag:
@@ -123,6 +101,7 @@ def get_anime_info(url, full=False):
 
         stats = get_mal_stats("{}/stats".format(info['url']))
         info["stats"] = stats
+
     return info
 
 
@@ -305,18 +284,9 @@ def get_anime_staff(url):
                 current_tag = current_tag.nextSibling
     return staff
 
+
 if __name__ == "__main__":
     # TODO: add command line usage
-
-    # url = "https://myanimelist.net/anime/20583/Haikyuu/characters"
-    # url = "https://myanimelist.net/anime/28851/Koe_no_Katachi/characters"
-    url = "https://myanimelist.net/anime/41807/Get_Up_Get_Live_Geragera/characters"
-    # data = get_anime_characters(url)
-    data = {
-        "staff": get_anime_staff(url)
-    }
-    # with open('data.json', 'w', encoding='utf8') as outfile:
-    # with open('staff_1.json', 'w', encoding='utf-8') as json_file:
-        # json.dump(data, json_file, indent=4)
-
-    print(utility.save_json(data, "test"))
+    url = "https://myanimelist.net/anime/38883/Haikyuu__To_the_Top"
+    data = get_anime_info(url, full=True)
+    utility.save_json(data, "haikyuu_{}".format(timestamp))

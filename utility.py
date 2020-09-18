@@ -12,7 +12,23 @@ from bs4 import BeautifulSoup
 import os
 import json
 
-### UTILITY FUNCTIONS
+### MAL SPECIFIC UTILITY FUNCTIONS
+def is_mal_url(url):
+    '''
+    Checks if url provided is a mal url
+
+    Parameters:
+        url (string):  url
+
+    Returns:
+        (boolean) indicating if url provided is a mal url
+    '''
+    # TODO: seperate into type of mal page for url
+    if url.find('myanimelist.net/'):
+        return True
+    return False
+
+### BEAUTIFULSOUP UTILITY FUNCTIONS
 def get_soup(url):
     '''
     Returns a BeautifulSoup object of the HTML contents of a provided url.
@@ -35,6 +51,25 @@ def get_soup(url):
 
     return soup
 
+def remove_children(element):
+    '''
+    Removes children elements from a bs4.element.Tag (changes the input element).
+
+    Inputs:
+        element (bs4.element.Tag)
+
+    '''
+    # print("input = {}".format(element))
+    for child in element.children:
+        try:
+            child.decompose()
+            # print("\tdecom = {}".format(element))
+        except AttributeError:
+            continue
+        # print()
+    return element
+
+### GENERAL UTILITY FUNCTIONS
 def save_json(data, filename):
     '''
     Saves data to a json file.
@@ -54,10 +89,6 @@ def save_json(data, filename):
         filename = "{}.json".format(filename)
 
     with open(filename, 'w', encoding='utf-8') as json_file:
-        json.dump(data, json_file, indent=4)
+        json.dump(data, json_file, ensure_ascii=False, indent=4, sort_keys=True)
 
     return os.path.abspath(filename)
-
-def remove_children():
-    # TODO: add function to remove children from bs4 parent element
-    pass

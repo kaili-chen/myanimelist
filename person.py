@@ -8,10 +8,10 @@ dt = datetime.now()
 timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
 
 ### init log
-if not os.path.exists("./logs") and not os.path.isdir("./logs"):
-    os.mkdir("./logs")
+if not os.path.exists("./log") and not os.path.isdir("./log"):
+    os.mkdir("./log")
 logging.basicConfig(format='[%(asctime)s] %(module)s:%(funcName)s:%(levelname)s:%(message)s',
-                    filename='logs/person_{}.log'.format(dt.strftime("%Y-%m-%dT%H-%M-%S")),
+                    filename='log/person_{}.log'.format(dt.strftime("%Y-%m-%dT%H-%M-%S")),
                     datefmt='%m/%d/%Y %I:%M:%S %p',
                     level=logging.WARNING)
 
