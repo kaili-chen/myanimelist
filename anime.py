@@ -1,5 +1,3 @@
-import sys
-import requests
 import re
 from datetime import datetime
 import utility
@@ -287,6 +285,7 @@ def get_anime_staff(url):
 
 if __name__ == "__main__":
     # TODO: add command line usage
-    url = "https://myanimelist.net/anime/38883/Haikyuu__To_the_Top"
-    data = get_anime_info(url, full=True)
-    utility.save_json(data, "haikyuu_{}".format(timestamp))
+    # url = "https://myanimelist.net/anime/38883/Haikyuu__To_the_Top"
+    # data = get_anime_info(url, full=True)
+    # utility.save_json(data, "haikyuu_{}".format(timestamp))
+    pass
