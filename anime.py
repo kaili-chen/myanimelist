@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 import utility
+from utility import Bs4Error
 
 dt = datetime.now()
 timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
@@ -21,6 +22,8 @@ def get_anime_info(url, full=False):
     soup = utility.get_soup(url)
     info = {}
 
+    ### BASIC ANIME INFO
+    ## META INFO
     mal_id = url[url.find("/anime/")+1:].split("/")[1]
     info["malId"] = mal_id
 
@@ -36,13 +39,17 @@ def get_anime_info(url, full=False):
     synopsis_tag = soup.find('meta', property="og:description")
     if synopsis_tag:
         synopsis = synopsis_tag['content']
+        # removes last line
         synopsis = synopsis.replace("[Written by MAL Rewrite]", "")
         info['synopsis'] = synopsis.strip()
     else:
         info['synopsis'] = ""
 
+
     dark_text_tags = soup.find_all("span", {"class": "dark_text"})
     for tag in dark_text_tags:
+        # SECTIONS: (alternative titles) english, synonyms, japanese
+        #           (information) type, episodes
         section_name = tag.text.lower()
         if section_name[-1] == ":":
             section_name = section_name[:-1]
@@ -64,11 +71,7 @@ def get_anime_info(url, full=False):
                 # print("\tlink: {}".format(link.text.strip()))
 
         if len(values) < 1:
-            for child in span_parent.children:
-                try:
-                    child.decompose()
-                except AttributeError:
-                    continue
+            span_parent = utility.remove_children(span_parent)
             values.append(span_parent.text.strip())
 
         values = list(set(values))
@@ -78,11 +81,16 @@ def get_anime_info(url, full=False):
                 values = values.split(",")
             if section_name in ["episodes", "popularity", "members", "favorites"]:
                 values = re.sub("[#,]", "", values)
-                values = int(values)
+                try:
+                    values = int(values)
+                except ValueError:
+                    if values.lower() == "unknown":
+                        values = None
         if section_name == "score":
             score = {}
             for v in values:
                 try:
+                    # WARNING: might cause issues if less than 10 people scored the anime
                     if float(v) <= 10:
                         score['score'] = float(v)
                     else:
@@ -91,15 +99,35 @@ def get_anime_info(url, full=False):
                     continue
             values = score
 
+        elif section_name == "ranked":
+            top_anime_rank = tag.nextSibling
+            if top_anime_rank == "N/A":
+                values = None
+            else:
+                values = top_anime_rank.strip()
+
         info[section_name] = values
 
     if full:
-        eps = get_anime_episodes("{}/episode".format(info['url']))
-        info["episode_info"] = eps
+        try:
+            eps = get_anime_episodes("{}/episode".format(info['url']))
+            info["episode_info"] = eps
+        except Bs4Error:
+            info["episode_info"] = []
 
         stats = get_mal_stats("{}/stats".format(info['url']))
         info["stats"] = stats
 
+    ### POST-PROC BEFORE RETURN
+    # if no english title in left side bar, use meta tag
+    if not 'english' in info:
+        info['english'] = soup.find('meta', property="og:title")['content']
+    # trim leading and trailing white spaces from synonyms
+    if not 'synonyms' in info:
+        info['synonyms'] = []
+    elif len(info['synonyms']) > 0:
+        info['synonyms'] = [s.strip() for s in info['synonyms']]
+    info['retrieved_on'] = timestamp
     return info
 
 
@@ -127,9 +155,9 @@ def get_anime_episodes(url):
         aired = row.find("td", class_="episode-aired").text.strip()
 
         eps.append({
-            "epNum": int(ep_num),
-            "engTitle": eng_title,
-            "japTitle": jap_title,
+            "ep_num": int(ep_num),
+            "eng_title": eng_title,
+            "jap_title": jap_title,
             "aired": aired,
             "url": ep_url
         })
@@ -161,13 +189,16 @@ def get_mal_stats(url):
 
     score_table = soup.find("table", class_="score-stats")
     scores = {}
-    for row in score_table.find_all("tr"):
-        score_label = int(row.find("td", class_="score-label").text)
-        votes = row.find("small").text
-        votes = int(re.sub("\D", "", votes))
-        # print("score = {}, votes = {}".format(score_label, votes))
-        scores[score_label] = votes
-    stats["scoreVotes"] = scores
+    if score_table:
+        for row in score_table.find_all("tr"):
+            score_label = int(row.find("td", class_="score-label").text)
+            votes = row.find("small").text
+            votes = int(re.sub("\D", "", votes))
+            # print("score = {}, votes = {}".format(score_label, votes))
+            scores[score_label] = votes
+        stats["score_votes"] = scores
+    else:
+        stats["score_votes"] = None
 
     return stats
 
@@ -189,12 +220,7 @@ def get_anime_characters(url):
     h2_headers = soup.find_all("h2")
     # print(h2_headers)
     for h in h2_headers:
-        for child in h.children:
-            try:
-                child.decompose()
-            except AttributeError:
-                continue
-
+        h = utility.remove_children(h)
         h2_text = h.text.strip()
 
         if h2_text == "Characters & Voice Actors" or h2_text == "Characters &amp; Voice Actors":
@@ -249,12 +275,7 @@ def get_anime_staff(url):
     h2_headers = soup.find_all("h2")
     # print(h2_headers)
     for h in h2_headers:
-        for child in h.children:
-            try:
-                child.decompose()
-            except AttributeError:
-                continue
-
+        h = utility.remove_children(h)
         h2_text = h.text.strip()
 
         if h2_text == "Staff":
@@ -285,7 +306,4 @@ def get_anime_staff(url):
 
 if __name__ == "__main__":
     # TODO: add command line usage
-    # url = "https://myanimelist.net/anime/38883/Haikyuu__To_the_Top"
-    # data = get_anime_info(url, full=True)
-    # utility.save_json(data, "haikyuu_{}".format(timestamp))
     pass
