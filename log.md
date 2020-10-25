@@ -27,3 +27,9 @@
 * [9:47 PM] [anime.py > get_mal_stats] change dict field scoreValues -> score_values, for consistency
 * [10:04 PM] [anime.py > get_anime_info] made ranked field reflect N/A or rank of anime in top anime charts
 * [10:15 PM] [utility.py > get_soup] changed print and sys.exit to raise custom Bs4Error instead
+
+### 23 September 2020
+* [2:41 PM] [anime.py > get_anime_info] added post proc to make licensors "add some" to be None  (null), also changes duration "Unknown" to None (null)
+
+### 18 October 2020
+* [7:01 PM] character seems to just be random and the "attributes" of a character depends on the anime - e.g. Tobio has "team" and "ability parameters" and does not have "known siblings" (which lelouch has) --> just get general attributess

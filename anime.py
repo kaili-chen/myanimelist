@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 import utility
 from utility import Bs4Error
+from bs4 import NavigableString
 
 dt = datetime.now()
 timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
@@ -25,7 +26,7 @@ def get_anime_info(url, full=False):
     ### BASIC ANIME INFO
     ## META INFO
     mal_id = url[url.find("/anime/")+1:].split("/")[1]
-    info["malId"] = mal_id
+    info["mal_id"] = mal_id
 
     title = soup.find("meta", property="og:title")
     title['url'] = title["content"].strip()
@@ -109,25 +110,45 @@ def get_anime_info(url, full=False):
         info[section_name] = values
 
     if full:
+        # get anime episodes
         try:
             eps = get_anime_episodes("{}/episode".format(info['url']))
             info["episode_info"] = eps
         except Bs4Error:
             info["episode_info"] = []
 
+        # get anime stats
         stats = get_mal_stats("{}/stats".format(info['url']))
         info["stats"] = stats
+
+        # get anime characters
+        characters = get_anime_characters("{}/characters".format(info['url']))
+        info["characters"] = characters
+
+        # get anime staff
+        staff = get_anime_staff("{}/characters".format(info['url']))
+        info["staff"] = staff
 
     ### POST-PROC BEFORE RETURN
     # if no english title in left side bar, use meta tag
     if not 'english' in info:
         info['english'] = soup.find('meta', property="og:title")['content']
+
     # trim leading and trailing white spaces from synonyms
     if not 'synonyms' in info:
         info['synonyms'] = []
     elif len(info['synonyms']) > 0:
         info['synonyms'] = [s.strip() for s in info['synonyms']]
     info['retrieved_on'] = timestamp
+
+    # deal with licensors value being "add more"
+    if not 'licensors' in info or info['licensors'] == 'add some':
+        info['licensors'] = None
+
+    # deal with unknown duration
+    if not 'duration' in info or info['duration'].lower() in ['unknown', 'n/a', 'none']:
+        info['duration'] = None
+
     return info
 
 
@@ -193,7 +214,7 @@ def get_mal_stats(url):
         for row in score_table.find_all("tr"):
             score_label = int(row.find("td", class_="score-label").text)
             votes = row.find("small").text
-            votes = int(re.sub("\D", "", votes))
+            votes = int(re.sub("\D", "", votes))    # sub non-digits with ""
             # print("score = {}, votes = {}".format(score_label, votes))
             scores[score_label] = votes
         stats["score_votes"] = scores
@@ -303,7 +324,78 @@ def get_anime_staff(url):
                 current_tag = current_tag.nextSibling
     return staff
 
+def get_character_info(url):
+    # VERY VERY BETA
+    # TODO: add animeography
+    # TODO: add mangaography
+    # TODO: add voice actors
+    # TODO: get picture
+    info = {}
+    soup = utility.get_soup(url)
+
+    ### METADATA
+    # url
+    mal_url = soup.find("meta", property="og:url")['content']
+    info['url'] = mal_url
+    # mal character id
+    mal_id = url[url.find("/character/")+1:].split("/")[1]
+    info["mal_id"] = mal_id
+    # get character nickname(s)
+    name_h1 = soup.find('h1', class_="title-name")
+    if name_h1:
+        name_h1 = name_h1.find('strong').text
+        if name_h1:
+            nicknames = re.findall('"([^"]*)"', name_h1)
+        else:
+            nicknames = []
+    else:
+        nicknames = []
+    info['nicknames'] = nicknames
+
+    ### INFO PANEL (left-side of page)
+    info_panel = soup.find(id="content")
+    info_panel_text = info_panel.text.lower()
+    # get member faves
+    partial = info_panel_text[info_panel_text.find('member favorites'):]
+    member_faves = partial.split('\n')[0]
+    member_faves = member_faves.split(':')[1]
+    member_faves = int(re.sub("\D", "", member_faves))  # replace non-digits with ""
+    info['member_faves'] = member_faves
+
+    ### MAIN CONTENTS
+    # get name header (h2)
+    name_h2 = soup.find('h2', class_='normal_header')
+    jap_name = name_h2.find('small').text
+    jap_name = re.sub('[()]', '', jap_name)     # replace () with ''
+    name_h2 = utility.remove_children(name_h2)
+    eng_name = name_h2.text.strip()
+    info['eng_name'] = eng_name
+    info['jap_name'] = jap_name
+
+    # here comes the tricky part: height, birthday, weight
+    first_line_only = name_h2.nextSibling   # oh here comes danger; wth is this design
+    body_text = first_line_only.nextSibling
+    # print(body_text)
+    main_text = body_text.contents
+    main_text.insert(0, first_line_only)
+    # only keep elements that are NavigableString, not just return/new lines and has ":"
+    main_text = [e for e in main_text if type(e) is NavigableString and len(e.strip()) > 0 and ":" in e]
+    for e in main_text:
+        parts = e.split(':')
+        info_label = parts[0].strip().lower()
+        info_detail = parts[1].strip().lower()
+        # birthdate
+        if 'birth' in info_label: info['birthdate'] = info_detail
+        if 'height' in info_label: info['height'] = info_detail
+
+    return info
 
 if __name__ == "__main__":
     # TODO: add command line usage
+    # url = "https://myanimelist.net/character/64771/Tobio_Kageyama"
+    # url = "https://myanimelist.net/character/68/Roy_Mustang"
+    # url = "https://myanimelist.net/character/117909/Izuku_Midoriya"
+    # url = "https://myanimelist.net/character/417/Lelouch_Lamperouge"
+    url = "https://myanimelist.net/character/71/L_Lawliet"
+    print(get_character_info(url))
     pass

@@ -51,7 +51,7 @@ def get_soup(url):
         soup (bs4.BeautifulSoup):
     '''
     webpage = requests.get(url)
-    print("{}\n\t{}".format(url, webpage))
+    # print("{}\n\t{}".format(url, webpage))
     if webpage.status_code != 200:
         # print('webpage status code = {}, exiting'.format(webpage.status_code))
         # sys.exit()
