@@ -3,6 +3,7 @@ from datetime import datetime
 import utility
 from utility import Bs4Error
 from bs4 import NavigableString
+import argparse
 
 dt = datetime.now()
 timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
@@ -269,11 +270,11 @@ def get_anime_characters(url):
                         # print("\t{}".format(seiyuu_url))
                         characters.append({
                             "character": character_name,
-                            "characterUrl": character_url,
-                            "characterType": character_type,
+                            "url": character_url,
+                            "type": character_type,
                             "va": seiyuu_name,
-                            "lang": seiyuu_lang,
-                            "url": seiyuu_url
+                            "va_lang": seiyuu_lang,
+                            "va_url": seiyuu_url
                         })
                 current_tag = current_tag.nextSibling
     return characters
@@ -324,8 +325,9 @@ def get_anime_staff(url):
                 current_tag = current_tag.nextSibling
     return staff
 
+
 def get_character_info(url):
-    # VERY VERY BETA
+    # IN DEVELOPMENT
     # TODO: add animeography
     # TODO: add mangaography
     # TODO: add voice actors
@@ -390,12 +392,16 @@ def get_character_info(url):
 
     return info
 
+
 if __name__ == "__main__":
     # TODO: add command line usage
-    # url = "https://myanimelist.net/character/64771/Tobio_Kageyama"
-    # url = "https://myanimelist.net/character/68/Roy_Mustang"
-    # url = "https://myanimelist.net/character/117909/Izuku_Midoriya"
-    # url = "https://myanimelist.net/character/417/Lelouch_Lamperouge"
-    url = "https://myanimelist.net/character/71/L_Lawliet"
-    print(get_character_info(url))
-    pass
+    ap = argparse.ArgumentParser()
+
+    # positional arguments
+    ap.add_argument('input', help='mal ANIME url')
+
+    args = vars(ap.parse_args())
+
+    # accessing input
+    # print(args['input'])
+    print(get_anime_info(args['input']))
