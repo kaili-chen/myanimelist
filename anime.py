@@ -1,12 +1,17 @@
+'''
+Functions and CLI for code to get mal anime information.
+'''
+
 import re
 from datetime import datetime
 import utility
 from utility import Bs4Error
 from bs4 import NavigableString
 import argparse
+import sys
 
 dt = datetime.now()
-timestamp = dt.strftime("%Y-%m-%dT%H:%M:%S+08:00")
+timestamp = dt.strftime('%Y-%m-%dT%H:%M:%S+08:00')
 
 ### FUNCTIONS
 def get_anime_info(url, full=False):
@@ -14,18 +19,20 @@ def get_anime_info(url, full=False):
     Gets anime information from mal anime url.
 
     Parameters:
-        url (string): mal anime url (https://myanimelist.net/anime/...)
-        full (bool) [defualt=False]: indicate whether to get additional information (episodes, mal statistics)
+        url [string]: mal anime url (https://myanimelist.net/anime/...)
+        full [bool] [defualt=False]: indicate whether to get additional information (episodes, mal statistics)
 
     Returns
-        info (dict): mal anime information
+        info [dict]: mal anime information
     '''
+    # TODO change full option to dict option, as add on (so check if is boolean or dict)
+    # TODO get related stuff also (adaption, sequal, prequel, etc.)
 
     soup = utility.get_soup(url)
     info = {}
 
     ### BASIC ANIME INFO
-    ## META INFO
+    ## META INFO - START
     mal_id = url[url.find("/anime/")+1:].split("/")[1]
     info["mal_id"] = mal_id
 
@@ -41,13 +48,15 @@ def get_anime_info(url, full=False):
     synopsis_tag = soup.find('meta', property="og:description")
     if synopsis_tag:
         synopsis = synopsis_tag['content']
-        # removes last line
+        # removes default last line
         synopsis = synopsis.replace("[Written by MAL Rewrite]", "")
         info['synopsis'] = synopsis.strip()
     else:
         info['synopsis'] = ""
+    ### META INFO - END
 
-
+    ### WEBPAGE INFO - START
+    # CONSIDER skipping iteration as needed - test timing
     dark_text_tags = soup.find_all("span", {"class": "dark_text"})
     for tag in dark_text_tags:
         # SECTIONS: (alternative titles) english, synonyms, japanese
@@ -79,10 +88,10 @@ def get_anime_info(url, full=False):
         values = list(set(values))
         if len(values) < 2:
             values = values[0]
-            if section_name == "synonyms":
+            if section_name == 'synonyms':
                 values = values.split(",")
             if section_name in ["episodes", "popularity", "members", "favorites"]:
-                values = re.sub("[#,]", "", values)
+                values = re.sub(r'[#,]', '', values)
                 try:
                     values = int(values)
                 except ValueError:
@@ -103,12 +112,35 @@ def get_anime_info(url, full=False):
 
         elif section_name == "ranked":
             top_anime_rank = tag.nextSibling
-            if top_anime_rank == "N/A":
+            if top_anime_rank.strip().lower() == "n/a":
                 values = None
             else:
-                values = top_anime_rank.strip()
+                values = top_anime_rank
+                # change rank string to int (e.g. #7 to just 7)
+                values = int(re.sub(r'\D', '', values))
 
         info[section_name] = values
+    ### WEBPAGE INFO - END
+
+    ### RELATED ANIME - START
+    related_anime_table = soup.find('table', {'class': 'anime_detail_related_anime'})
+    if related_anime_table:
+        related_anime_info = []
+        related_anime_rows = related_anime_table.find_all('tr')
+        for row in related_anime_rows:
+            cells = row.find_all('td')
+            # regex matches not word and not white space (for stuff like "alternate setting")
+            related_how = re.sub(r'[^\w\s]', '', cells[0].text).lower()
+            related_link = '{}{}'.format('https://myanimelist.net', cells[1].find('a')['href'])
+            # TODO add mal link type (e.g. manga, animes)
+            related_anime_info.append({
+                'related_type': related_how,
+                'link': related_link,
+                'title': cells[1].text
+            })
+        info['related'] = related_anime_info
+    else: info['related'] = None
+    ### RELATED ANIME - END
 
     if full:
         # get anime episodes
@@ -130,7 +162,7 @@ def get_anime_info(url, full=False):
         staff = get_anime_staff("{}/characters".format(info['url']))
         info["staff"] = staff
 
-    ### POST-PROC BEFORE RETURN
+    ### POST-PROC BEFORE RETURN - START
     # if no english title in left side bar, use meta tag
     if not 'english' in info:
         info['english'] = soup.find('meta', property="og:title")['content']
@@ -140,15 +172,18 @@ def get_anime_info(url, full=False):
         info['synonyms'] = []
     elif len(info['synonyms']) > 0:
         info['synonyms'] = [s.strip() for s in info['synonyms']]
+    ### POST-PROC BEFORE RETURN - END
+
+    # add timestamp
     info['retrieved_on'] = timestamp
 
-    # deal with licensors value being "add more"
-    if not 'licensors' in info or info['licensors'] == 'add some':
-        info['licensors'] = None
-
-    # deal with unknown duration
-    if not 'duration' in info or info['duration'].lower() in ['unknown', 'n/a', 'none']:
-        info['duration'] = None
+    for k,v in info.items():
+        # if string is of values in array, replace with None OR
+        # if list is empty, replace with None OR
+        # if list is empty, replace with None
+        if (type(v) is str and v.strip().lower() in ['unknown', 'n/a', 'none', 'add some', 'na']) or (type(v) is list and len(v)<1) or (type(v) is dict and not v):
+            # print('replace {}: {}, {}'.format(type(v),k,v))
+            info[k] = None
 
     return info
 
@@ -215,7 +250,7 @@ def get_mal_stats(url):
         for row in score_table.find_all("tr"):
             score_label = int(row.find("td", class_="score-label").text)
             votes = row.find("small").text
-            votes = int(re.sub("\D", "", votes))    # sub non-digits with ""
+            votes = int(re.sub(r'\D', '', votes))    # sub non-digits with ""
             # print("score = {}, votes = {}".format(score_label, votes))
             scores[score_label] = votes
         stats["score_votes"] = scores
@@ -361,7 +396,7 @@ def get_character_info(url):
     partial = info_panel_text[info_panel_text.find('member favorites'):]
     member_faves = partial.split('\n')[0]
     member_faves = member_faves.split(':')[1]
-    member_faves = int(re.sub("\D", "", member_faves))  # replace non-digits with ""
+    member_faves = int(re.sub(r'\D', '', member_faves))  # replace non-digits with ''
     info['member_faves'] = member_faves
 
     ### MAIN CONTENTS
@@ -393,8 +428,13 @@ def get_character_info(url):
     return info
 
 
-if __name__ == "__main__":
-    # TODO: add command line usage
+if __name__ == '__main__':
+    # cmd line colours
+    RESET = '\033[0;0m'
+    RED = '\033[0;31m'
+    GREEN = '\033[0;32m'
+
+    # TODO add path_out
     ap = argparse.ArgumentParser()
 
     # positional arguments
@@ -402,6 +442,18 @@ if __name__ == "__main__":
 
     args = vars(ap.parse_args())
 
-    # accessing input
-    # print(args['input'])
-    print(get_anime_info(args['input']))
+    # input validation
+    if utility.get_mal_type(args['input']) is not 'anime':
+        print('{}ERROR: given url ({}) is not a valid mal anime url'.format(RED,args['input']))
+        sys.stdout.write(RESET)
+        sys.exit()
+    try: 
+        data = get_anime_info(args['input'], full=False)
+
+        output_filename = 'output_{}.json'.format(re.sub(r'\W', '', timestamp))
+        utility.save_json(data, output_filename)
+        print('{}information saved to file: {}'.format(GREEN, output_filename))
+    except Exception as e:
+        print('{}ERROR: {}'.format(RED,str(e)))
+
+    sys.stdout.write(RESET)
