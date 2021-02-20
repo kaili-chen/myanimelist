@@ -26,18 +26,17 @@ def get_anime_info(url, full=False):
         info [dict]: mal anime information
     '''
     # TODO change full option to dict option, as add on (so check if is boolean or dict)
-    # TODO get related stuff also (adaption, sequal, prequel, etc.)
 
     soup = utility.get_soup(url)
     info = {}
 
     ### BASIC ANIME INFO
-    ## META INFO - START
-    mal_id = url[url.find("/anime/")+1:].split("/")[1]
-    info["mal_id"] = mal_id
+    ## META INFO -START
+    mal_id = url[url.find('/anime/')+1:].split('/')[1]
+    info['mal_id'] = mal_id
 
-    title = soup.find("meta", property="og:title")
-    title['url'] = title["content"].strip()
+    title = soup.find('meta', property='og:title')
+    title['url'] = title['content'].strip()
 
     url_tag = soup.find('meta', property="og:url")
     if url_tag:
@@ -53,10 +52,11 @@ def get_anime_info(url, full=False):
         info['synopsis'] = synopsis.strip()
     else:
         info['synopsis'] = ""
-    ### META INFO - END
+    ### META INFO -END
 
-    ### WEBPAGE INFO - START
+    ### WEBPAGE INFO -START
     # CONSIDER skipping iteration as needed - test timing
+    # dark_text spans are what comes before the value (e.g. Score: xxx <-- score text in dark_text span)
     dark_text_tags = soup.find_all("span", {"class": "dark_text"})
     for tag in dark_text_tags:
         # SECTIONS: (alternative titles) english, synonyms, japanese
@@ -69,8 +69,8 @@ def get_anime_info(url, full=False):
         span_parent = tag.parent
         # print("\t {}".format(span_parent))
         values = []
-        spans = span_parent.find_all("span")
-        links = span_parent.find_all("a")
+        spans = span_parent.find_all('span')
+        links = span_parent.find_all('a')
         if spans:
             # print("span found: {}".format(spans))
             for span in spans[1:]:
@@ -89,7 +89,7 @@ def get_anime_info(url, full=False):
         if len(values) < 2:
             values = values[0]
             if section_name == 'synonyms':
-                values = values.split(",")
+                values = values.split(',')
             if section_name in ["episodes", "popularity", "members", "favorites"]:
                 values = re.sub(r'[#,]', '', values)
                 try:
@@ -97,6 +97,7 @@ def get_anime_info(url, full=False):
                 except ValueError:
                     if values.lower() == "unknown":
                         values = None
+
         if section_name == "score":
             score = {}
             for v in values:
@@ -120,9 +121,9 @@ def get_anime_info(url, full=False):
                 values = int(re.sub(r'\D', '', values))
 
         info[section_name] = values
-    ### WEBPAGE INFO - END
+    ### WEBPAGE INFO -END
 
-    ### RELATED ANIME - START
+    ### RELATED ANIME -START
     related_anime_table = soup.find('table', {'class': 'anime_detail_related_anime'})
     if related_anime_table:
         related_anime_info = []
@@ -140,7 +141,7 @@ def get_anime_info(url, full=False):
             })
         info['related'] = related_anime_info
     else: info['related'] = None
-    ### RELATED ANIME - END
+    ### RELATED ANIME -END
 
     if full:
         # get anime episodes
@@ -193,10 +194,10 @@ def get_anime_episodes(url):
     Gets anime episodes information from mal anime url.
 
     Parameters:
-        url (string): mal anime episode url (https://myanimelist.net/anime/<anime_id>/episode)
+        url [string]: mal anime episode url (https://myanimelist.net/anime/<mal_anime_id>/episode)
 
     Returns
-        eps (list): contains each episode as its own individual dict object
+        eps [list]: contains each episode as its own individual dict object
     '''
     soup = utility.get_soup(url)
 
@@ -274,13 +275,13 @@ def get_anime_characters(url):
     soup = utility.get_soup(url)
     # print(soup.prettify())
     characters = []
-    h2_headers = soup.find_all("h2")
+    h2_headers = soup.find_all('h2')
     # print(h2_headers)
     for h in h2_headers:
         h = utility.remove_children(h)
         h2_text = h.text.strip()
 
-        if h2_text == "Characters & Voice Actors" or h2_text == "Characters &amp; Voice Actors":
+        if h2_text == 'Characters & Voice Actors' or h2_text == 'Characters &amp; Voice Actors':
             current_tag = h.parent.nextSibling
 
             while current_tag is not None and current_tag.name == "table":
@@ -329,13 +330,13 @@ def get_anime_staff(url):
     soup = utility.get_soup(url)
     # print(soup.prettify())
     staff = []
-    h2_headers = soup.find_all("h2")
+    h2_headers = soup.find_all('h2')
     # print(h2_headers)
     for h in h2_headers:
         h = utility.remove_children(h)
         h2_text = h.text.strip()
 
-        if h2_text == "Staff":
+        if h2_text == 'Staff':
             current_tag = h.parent.nextSibling
             # cells = current_tag.find_all("td")
             # print(cells[1].find("small").text.strip())
@@ -362,10 +363,9 @@ def get_anime_staff(url):
 
 
 def get_character_info(url):
-    # IN DEVELOPMENT
-    # TODO: add animeography
-    # TODO: add mangaography
-    # TODO: add voice actors
+    '''
+    get character info (from anime mal url)
+    '''
     # TODO: get picture
     info = {}
     soup = utility.get_soup(url)
@@ -382,7 +382,7 @@ def get_character_info(url):
     if name_h1:
         name_h1 = name_h1.find('strong').text
         if name_h1:
-            nicknames = re.findall('"([^"]*)"', name_h1)
+            nicknames = re.findall(r'"([^"]*)"', name_h1)
         else:
             nicknames = []
     else:
@@ -390,7 +390,7 @@ def get_character_info(url):
     info['nicknames'] = nicknames
 
     ### INFO PANEL (left-side of page)
-    info_panel = soup.find(id="content")
+    info_panel = soup.find(id='content')
     info_panel_text = info_panel.text.lower()
     # get member faves
     partial = info_panel_text[info_panel_text.find('member favorites'):]
