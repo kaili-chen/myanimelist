@@ -1,7 +1,12 @@
 # mal 
-Uses web scrapping to return information from myanimelist (like an api)
+Uses web scrapping to return information from myanimelist (similar to an api)
 
 # Installation
+1. Clone/download this repository 
+```bash
+git clone https://github.com/kaili-chen/mal.git
+```
+2. Install requirements 
 ```
 pip install requirements.txt
 ```
@@ -12,62 +17,61 @@ pip install requirements.txt
 ```
 python anime.py <mal_anime_url> 
 ```
-### Example
+#### Flags
+| Optional | Flag | Description |
+| --- | --- | --- |
+| No | --input | mal anime url (e.g. https://myanimelist.net/anime/4898/Kuroshitsuji) |
+
+#### Example
 ```
 python anime.py https://myanimelist.net/anime/4898/Kuroshitsuji"
 ```
-#### Result
-* saved as output_{timestamp}.json
-```json
-{
-    "aired": "Oct 3, 2008 to Mar 27, 2009",
-    "broadcast": "Unknown",
-    "duration": "24 min. per ep.",
-    "english": "Black Butler",
-    "episodes": 24,
-    "favorites": 23489,
-    "genres": [
-        "Comedy",
-        "Action",
-        "Demons",
-        "Historical",
-        "Mystery",
-        "Shounen",
-        "Supernatural"
-    ],
-    "japanese": "黒執事",
-    "licensors": [
-        "Funimation",
-        "Aniplex of America"
-    ],
-    "mal_id": "4898",
-    "members": 873109,
-    "popularity": 92,
-    "premiered": "Fall 2008",
-    "producers": [
-        "Aniplex",
-        "Movic",
-        "Trinity Sound",
-        "Mainichi Broadcasting System",
-        "Square Enix",
-        "Yomiko Advertising"
-    ],
-    "ranked": "#927",
-    "rating": "R - 17+ (violence & profanity)",
-    "retrieved_on": "2021-02-14T11:10:47+08:00",
-    "score": {
-        "score": 7.75,
-        "scoredBy": 444046
-    },
-    "source": "Manga",
-    "status": "Finished Airing",
-    "studios": "A-1 Pictures",
-    "synonyms": [
-        "Kuro Shitsuji",
-        "Kuroshitsuzi"
-    ],
-    "synopsis": "Young Ciel Phantomhive is known as \"the Queen's Guard Dog,\" taking care of the many unsettling events that occur in Victorian England for Her Majesty. Aided by Sebastian Michaelis, his loyal butler with seemingly inhuman abilities, Ciel uses whatever means necessary to get the job done. But is there more to this black-clad butler than meets the eye? In Ciel's past lies a secret tragedy that enveloped him in perennial darkness—during one of his bleakest moments, he formed a contract with Sebastian, a demon, bargaining his soul in exchange for vengeance upon those who wronged him. Today, not only is Sebastian one hell of a butler, but he is also the perfect servant to carry out his master's orders—all the while anticipating the delicious meal he will eventually make of Ciel's soul. As the two work to unravel the mystery behind Ciel's chain of misfortunes, a bond forms between them that neither heaven nor hell can tear apart.",
-    "type": "TV",
-    "url": "https://myanimelist.net/anime/4898/Kuroshitsuji"
-}
-```
+(sample result can be found at `./sample outputs/anime.json`)
+
+# Result    
+## Anime 
+* Notes
+    * Not all key-value pairs might be present
+    * if values are empty, "Unknown", "NA", or other similar indicators of unavailability, the value would be `null` in the result
+
+| Key | Type | Description |
+| --- | --- | --- |
+| aired | `string` | date range that anime was aired |
+| broadcast | `string` | weekday of broadcast, usually in JST |
+| duration | `string` | duration of each anime episode / length of movie |
+| english | `string` | english name of anime |
+| episodes | `number` | number of episodes |
+| favorites | `number` | how many mal members added this anime to their favourites |
+| genres | `array` of `string` | genre(s) of anime |
+| japanese | `string` |  japanese name of anime |
+| licensors | `array` of `string` |anime's licensors |
+| mal_id | `string` |mal's id |
+| members | `number` | number of mal members that have this anime in their anime list |
+| popularity | `number` | popularity ranking, [based on how many members have anime added to their anime list](https://myanimelist.net/info.php?go=topanime) |
+| premiered | `string` | date that anime premiered |
+| producers | `array` of `string` | anime's producers |
+| ranked | `number` | rank of anime on ['top anime' list](https://myanimelist.net/info.php?go=topanime)|
+| rating | `number` | viewership rating |
+| related | `array` of `object` | related works of anime - more info on `object` below |
+| retrieved_on | `string` | datetime string of when the information was extracted |
+| score | `object` | rating of anime (same as previously mentioned rating) and the number of mal members that rated anime |
+| source | `string` | source of material used for anime |
+| status | `string` | current status of anime (e.g. airing, completed) |
+| studios | `array` of `string` | studios that worked on anime |
+| synonyms | `array` of `string` | other titles/names that anime go by |
+| synopsis | `string` | synopsis of anime |
+| type | `string` | type of anime (e.g. TV, ONA, OVA) |
+| url | `string` | url of anime's mal page |
+
+### Anime: related
+| Key | Type | Description |
+| --- | --- | --- |
+| link | `string` | mal link to related material |
+| related_type | `string` | type of relation to anime (e.g. adaption, sequel) |
+| title | `string` | title of related material |
+
+### Anime: score
+| Key | Type | Description |
+| --- | --- | --- |
+| score | `number` | [weighted average by mal users](https://myanimelist.net/info.php?go=topanime) |
+| scored_by | `number` | number of mal users who scored the anime |
