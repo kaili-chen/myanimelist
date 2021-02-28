@@ -106,7 +106,7 @@ def get_anime_info(url, full=False):
                     if float(v) <= 10:
                         score['score'] = float(v)
                     else:
-                        score['scoredBy'] = int(v)
+                        score['scored_by'] = int(v)
                 except ValueError:
                     continue
             values = score
