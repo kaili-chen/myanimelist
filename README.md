@@ -29,6 +29,11 @@ python anime.py https://myanimelist.net/anime/4898/Kuroshitsuji"
 ```
 (sample result can be found at [`./sample outputs/anime.json`](https://github.com/kaili-chen/myanimelist/blob/master/sample%20outputs/anime.json))
 
+### As python package
+```python
+
+```
+
 # Result
 * Notes
     * Not all key-value pairs might be present
@@ -94,4 +99,4 @@ python anime.py https://myanimelist.net/anime/4898/Kuroshitsuji"
 * get character's mangaography
 
 # Background story
-this frankly started as an information gathering project for some mindlessly fun visualisations but i got too invested and am working on it on-and-off in my free time. thought i would make it public for hope that it might benefit someone. i am still motivated to refine it, as a way to learn data mining, making packages that make sense and so on. here's the pitch: any support in the form of coffee $ is appreciated :) (sponsor button is on the top of this page)
+this frankly started as an information gathering project for some mindlessly fun visualisations but i got too invested and am working on it on-and-off in my free time. thought i would make it public for hope that it might benefit someone. i am still motivated to refine it, as a way to learn data mining, making packages that make sense and so on.
