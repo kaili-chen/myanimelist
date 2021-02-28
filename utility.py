@@ -11,30 +11,45 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import json
+import re
 
 ### MAL SPECIFIC UTILITY FUNCTIONS
-class MalUrlError(Exception):
-    pass
-
-def is_mal_url(url, check_type=None):
+def get_mal_type(url):
     '''
-    Checks if url provided is a mal url
+    Returns what type (anime, character etc.) of mal url the given url is 
 
     Parameters:
-        url (string):  url
-        check_type (string): indicate which kind of mal urls to check for (e.g. anime, people)
+        url [string]:  url
 
     Returns:
-        (boolean) indicating if url provided is a mal url
-            - if check_type is not None and valid, True when url is mal url and is of type
+        mal_url_type [string]: type of mal url (if any) 
+            - types: 'episode', 'anime', 'character', 'people'
+            - returns None if not a mal url (does not match any types)
     '''
-    # TODO: seperate into type of mal page for url
-    TYPES = ['anime', 'people']
-    if check_type is not None and not check_type in TYPES:
-        raise MalUrlError("check type provided: {}, is not valid or currently supported.".format(check_type))
-    if url.find('myanimelist.net') > -1:
-        return True
-    return False
+    mal_base_pattern = r'([https:\/\/]*myanimelist.net\/)'
+    # episode needs to be matched before anime cos its url is a more specific ver of the anime one
+    # TODO not allow invalid episodes to match anime pattern
+    types_pattern = {
+        'episode': r'anime\/.+\/episode\/\d+',
+        'anime': r'anime\/.+',
+        'character': r'character\/.+',
+        'people': r'people\/.+'
+    }
+    
+    # check for base mal url first
+    patt = re.compile(mal_base_pattern)
+    match = patt.match(url)
+    if not match:
+        return None
+    
+    # get url after the initial base pattern
+    remaining = url[match.span()[1]:]
+    for mal_type, pattern in types_pattern.items():
+        patt = re.compile(pattern)
+        match = patt.match(remaining)
+        if match:
+            return mal_type
+    return None
 
 ### BEAUTIFULSOUP UTILITY FUNCTIONS
 class Bs4Error(Exception):
@@ -61,7 +76,8 @@ def get_soup(url):
     if soup is None or soup == "":
         # print("no soup, exiting")
         # sys.exit()
-        raise Bs4Error("{}: no soup, exiting get_soup function".format(url, webpage.status_code))
+        raise Bs4Error("{} [status: {}]: no soup, exiting get_soup function".format(url, webpage.status_code))
+        
     return soup
 
 def remove_children(element):
@@ -73,13 +89,14 @@ def remove_children(element):
 
     '''
     # print("input = {}".format(element))
-    for child in element.children:
-        try:
-            child.decompose()
-            # print("\tdecom = {}".format(element))
-        except AttributeError:
-            continue
-        # print()
+    if element:
+        for child in element.children:
+            try:
+                child.decompose()
+                # print("\tdecom = {}".format(element))
+            except AttributeError:
+                continue
+            # print()
     return element
 
 ### GENERAL UTILITY FUNCTIONS

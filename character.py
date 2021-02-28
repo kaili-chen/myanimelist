@@ -1,5 +1,5 @@
 '''
-Functions for code to get mal character information.
+Functions and CLI for code to get mal character information.
 '''
 
 import re
@@ -41,7 +41,7 @@ def get_character_info(url, full=False):
     ### META INFO -END
 
     ### NAME -START
-    eng_name_tag = content.find('h2', {'class':'normal_header'})
+    eng_name_tag = content.find('h2', {'class':'normal_header'})    # 1st h2 header in content div
     jap_name_tag = eng_name_tag.find('small')
     if jap_name_tag:
         info['jap_name'] = re.sub(r'[\(\)]', '', jap_name_tag.text)
@@ -62,6 +62,11 @@ def get_character_info(url, full=False):
     return info
 
 if __name__ == '__main__':
+    # cmd line colours
+    RESET = '\033[0;0m'
+    RED = '\033[0;31m'
+    GREEN = '\033[0;32m'
+
     # TODO add path_out
     ap = argparse.ArgumentParser()
 
@@ -70,5 +75,18 @@ if __name__ == '__main__':
 
     args = vars(ap.parse_args())
 
-    info = get_character_info(args['input'])
-    
+    # input validation
+    if utility.get_mal_type(args['input']) is not 'character':
+        print('{}ERROR: given url ({}) is not a valid mal character url'.format(RED,args['input']))
+        sys.stdout.write(RESET)
+        sys.exit()
+    try: 
+        data = get_character_info(args['input'])
+
+        output_filename = 'output_{}.json'.format(re.sub(r'\W', '', timestamp))
+        utility.save_json(data, output_filename)
+        print('{}information saved to file: {}'.format(GREEN, output_filename))
+    except Exception as e:
+        print('{}ERROR: {}'.format(RED,str(e)))
+
+    sys.stdout.write(RESET)
